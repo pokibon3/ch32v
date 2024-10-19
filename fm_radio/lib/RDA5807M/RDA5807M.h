@@ -113,6 +113,7 @@
 #define RDA5807M_BAND_JAPAN (0x1 << 2)
 #define RDA5807M_BAND_WORLD (0x2 << 2)
 #define RDA5807M_BAND_EAST (0x3 << 2)
+#define RDA5807M_BAND_50M ((0x3 << 2) + 1)
 #define RDA5807M_SPACE_MASK word(0x0003)
 #define RDA5807M_SPACE_100K 0x0
 #define RDA5807M_SPACE_200K 0x1
@@ -357,7 +358,7 @@ class RDA5807M
         *   value - value to set the given register and bits to.
         */
         void updateRegister(byte reg, word mask, word value) {
-            setRegister(reg, getRegister(reg) & ~mask | value);
+            setRegister(reg, (getRegister(reg) & ~mask) | value);
         };
 
         /*
@@ -464,8 +465,9 @@ class RDA5807M
         *   the currently tuned station.
         */
         byte getRSSI(void);
-        void dumpRegister(void);
-
+        bool dumpRegister(void);
+        bool setSpacing(word space);
+        bool setBand(word band);
     private:
         /*
         * Description:

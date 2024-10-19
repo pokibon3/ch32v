@@ -43,10 +43,23 @@
 #define I2C_ADDR_SEQ 0x10
 #define I2C_ADDR_RND 0x11
 
+struct _bandtable {
+	uint16_t l_limit;
+	uint16_t h_limit;
+	uint16_t band;
+	uint16_t space;
+	uint16_t tune;
+} band_table[3] = {
+	{7600, 10800, RDA5807M_BAND_WORLD, RDA5807M_SPACE_100K, 8470},
+	{6500,  7600, RDA5807M_BAND_EAST,  RDA5807M_SPACE_100K, 6500},
+	{5000,  6500, RDA5807M_BAND_50M,   RDA5807M_SPACE_25K,  5100}, 
+};
 uint16_t freq  = 8470  ;///Frequency! 80 82.5 84.7 
 //	uint16_t freq  = 8000  ;///Frequency! 80 82.5 84.7 
 //	uint16_t freq  = 8250  ;///Frequency! 80 82.5 84.7 
 uint16_t vol  = 15        ;///Frequency! 80 82.5 84.7 
+uint16_t band = 1;
+
 
 RDA5807M radio;
 
@@ -64,24 +77,33 @@ void check_input()
 //		if (freq < 7600) freq = 7600;
 //		radio.setFrequency(freq);
 		radio.seekDown(false);
-		Delay_Ms(100);
+		Delay_Ms(300);
 
 	} else if (GPIO_digitalRead(SW3_PIN)) {			// UP
 //		freq += 10;
 //		if (freq > 10800) freq = 10800;
 //		radio.setFrequency(freq);
 		radio.seekUp(false);
-		Delay_Ms(100);
-	} else if (GPIO_digitalRead(SW1_PIN)) {			// Mode
-		Delay_Ms(100);
+		Delay_Ms(300);
+	} else if (GPIO_digitalRead(SW1_PIN)) {			// Band
+		band++;
+		if (band > 3) band = 1;
+		radio.setBand(band_table[band - 1].band);
+		radio.setSpacing(band_table[band - 1].space);
+		freq = band_table[band - 1].tune;
+		radio.setFrequency(freq);
+		
+		radio.dumpRegister();
+
+		Delay_Ms(300);
 	}
 }
 
 
 void setup()
 {
-	uint8_t buf[16];
-	uint16_t len = 4;
+//	uint8_t buf[16];
+//	uint16_t len = 4;
 
     // 各GPIOの有効化
     GPIO_port_enable(GPIO_port_D);
@@ -162,18 +184,24 @@ int main()
 //	printf("Start CW Decoder Version 1.0\n");
 	ssd1306_setbuf(0);	// Clear Screen
 	ssd1306_refresh();
+
+	radio.setBand(band_table[band - 1].band);
+	radio.setSpacing(band_table[band - 1].space);
+	freq = band_table[band - 1].tune;
 	radio.setFrequency(freq);
+
 	uint8_t  rs;
-	uint16_t fr;
+//	uint16_t fr;
 	radio.dumpRegister();
 	while(1) {
 
 		check_input();
 		ssd1306_setbuf(0);
-		mini_snprintf(buf, sizeof(buf), "FREQ:%3d.%1d", freq / 100, freq % 100 / 10);
+//		mini_snprintf(buf, sizeof(buf), "FREQ:%3d.%1d", freq / 100, freq % 100 / 10);
+		mini_snprintf(buf, sizeof(buf), "%3d.%02d MHz", freq / 100, freq % 100);
 		ssd1306_drawstr_sz(0, 0, buf, 1, fontsize_16);
 		mini_snprintf(buf, sizeof(buf), "VOL :%3d", vol);
-		ssd1306_drawstr_sz(0, 20, buf, 1, fontsize_16);
+		ssd1306_drawstr_sz(0, 16, buf, 1, fontsize_16);
 		uint32_t  t = millis();
 		if ((t- time) > 100) {
 			time = t;
@@ -183,7 +211,9 @@ int main()
 //        	printf("FREQ = %d\n", freq);
 		}
 		mini_snprintf(buf, sizeof(buf), "RSSI:%3d", rs);
-		ssd1306_drawstr_sz(0, 40, buf, 1, fontsize_16);
+		ssd1306_drawstr_sz(0, 32, buf, 1, fontsize_16);
+		mini_snprintf(buf, sizeof(buf), "BAND:%2d", band);
+		ssd1306_drawstr_sz(0, 48, buf, 1, fontsize_16);
 		ssd1306_refresh();
 
 		Delay_Ms(1);

@@ -198,7 +198,7 @@ word RDA5807M::getBandAndSpacing(void) {
     const byte space = band & RDA5807M_SPACE_MASK;
 
     if (band & RDA5807M_BAND_MASK == RDA5807M_BAND_EAST && 
-        !(getRegister(RDA5807M_REG_BLEND) & RDA5807M_FLG_EASTBAND65M))
+        (getRegister(RDA5807M_REG_BLEND) & RDA5807M_FLG_EASTBAND65M))
         //Lower band limit is 50MHz
         band = (band >> RDA5807M_BAND_SHIFT) + 1;
     else
@@ -209,23 +209,41 @@ word RDA5807M::getBandAndSpacing(void) {
 
 word RDA5807M::getFrequency(void) {
     const word spaceandband = getBandAndSpacing();
+    const byte band = spaceandband & 0xff;
+//    if (band & RDA5807M_BAND_MASK == RDA5807M_BAND_EAST && 
+//        !(getRegister(RDA5807M_REG_BLEND) & RDA5807M_FLG_EASTBAND65M)) {
+//        band = (spaceandband & 0x00ff);
+//    } else {
+//        //Lower band limit is 50MHz
+//        band = (spaceandband & 0x00ff) + 1;
+//    }
 
 //    return pgm_read_word(&RDA5807M_BandLowerLimits[lowByte(spaceandband)]) +
 //        (getRegister(RDA5807M_REG_STATUS) & RDA5807M_READCHAN_MASK) *
 //        pgm_read_byte(&RDA5807M_ChannelSpacings[highByte(spaceandband)]) / 10;
 
-    return RDA5807M_BandLowerLimits[spaceandband & 0x00ff] +
+    return RDA5807M_BandLowerLimits[band] +
         (getRegister(RDA5807M_REG_STATUS) & RDA5807M_READCHAN_MASK) *
         RDA5807M_ChannelSpacings[spaceandband >> 8] / 10;
 };
 
 bool RDA5807M::setFrequency(word frequency) {
     const word spaceandband = getBandAndSpacing();
-    const word origin = RDA5807M_BandLowerLimits[spaceandband & 0x00ff];
+    const byte band = spaceandband & 0xff;
+//    const word origin = RDA5807M_BandLowerLimits[spaceandband & 0x00ff];
+
+//    if (band & RDA5807M_BAND_MASK == RDA5807M_BAND_EAST && 
+//        !(getRegister(RDA5807M_REG_BLEND) & RDA5807M_FLG_EASTBAND65M)) {
+//        band = (spaceandband & 0x00ff);
+//    } else {
+//        //Lower band limit is 50MHz
+//        band = (spaceandband & 0x00ff) + 1;
+//    }
+    const word origin = RDA5807M_BandLowerLimits[band];
 
     //Check that specified frequency falls within our current band limits
     if (frequency < origin ||
-        frequency > RDA5807M_BandHigherLimits[spaceandband & 0x00ff])
+        frequency > RDA5807M_BandHigherLimits[band])
         return false;
 
     //Adjust start offset
@@ -249,8 +267,22 @@ byte RDA5807M::getRSSI(void) {
     return (getRegister(RDA5807M_REG_RSSI) & RDA5807M_RSSI_MASK) >> RDA5807M_RSSI_SHIFT;
 };
 
+bool RDA5807M::setBand(word band) {
+    // set or reset RDA5807M_FLG_EASTBAND65M
+    updateRegister(RDA5807M_REG_BLEND, RDA5807M_FLG_EASTBAND65M, (band & 0x001) << 9);
+    // set band;
+    updateRegister(RDA5807M_REG_TUNING, RDA5807M_BAND_MASK, band & RDA5807M_BAND_MASK);
 
-void RDA5807M::dumpRegister(void)
+    return true;
+}
+
+bool RDA5807M::setSpacing(word space) {
+    // set spacing;
+    updateRegister(RDA5807M_REG_TUNING, RDA5807M_SPACE_MASK, space & RDA5807M_SPACE_MASK);
+
+    return true;
+}
+bool RDA5807M::dumpRegister(void)
 {
     printf("REG_CHIPID  :%04x\n", getRegister(RDA5807M_REG_CHIPID));
     printf("REG_CONFIG  :%04x\n", getRegister(RDA5807M_REG_CONFIG));
@@ -262,4 +294,6 @@ void RDA5807M::dumpRegister(void)
     printf("REG_FREQ    :%04x\n", getRegister(RDA5807M_REG_FREQ));
     printf("REG_STATUS  :%04x\n", getRegister(RDA5807M_REG_STATUS));
     printf("REG_RSSI    :%04x\n", getRegister(RDA5807M_REG_RSSI));
+
+    return true;
 }
