@@ -468,6 +468,7 @@ class RDA5807M
         bool dumpRegister(void);
         bool setSpacing(word space);
         bool setBand(word band);
+        bool setVolume(byte vol);
     private:
         /*
         * Description:

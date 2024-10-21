@@ -627,7 +627,7 @@ void ssd1306_drawstr(uint8_t x, uint8_t y, char *str, uint8_t color)
  */
 typedef enum {
     fontsize_8x8 = 1,
-    fontsize_16 = 2,
+    fontsize_16x16 = 2,
     fontsize_32x32 = 4,
 	fontsize_64x64 = 8,
 } font_size_t;

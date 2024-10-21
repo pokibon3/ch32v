@@ -21,8 +21,8 @@
 void RDA5807M::begin(byte band) {
     init_i2c_master();
 //    Wire.begin();
-    setRegister(RDA5807M_REG_CONFIG, RDA5807M_FLG_DHIZ | RDA5807M_FLG_DMUTE | 
-//                RDA5807M_FLG_BASS | RDA5807M_FLG_SEEKUP | RDA5807M_FLG_RDS | 
+    setRegister(RDA5807M_REG_CONFIG, RDA5807M_FLG_DHIZ | RDA5807M_FLG_DMUTE |
+//                RDA5807M_FLG_BASS | RDA5807M_FLG_SEEKUP | RDA5807M_FLG_RDS |
                 RDA5807M_FLG_BASS | RDA5807M_FLG_SEEKUP |
                 RDA5807M_FLG_NEW | RDA5807M_FLG_ENABLE);
     updateRegister(RDA5807M_REG_TUNING, RDA5807M_BAND_MASK, band);
@@ -57,79 +57,14 @@ word RDA5807M::getRegister(byte reg) {
     result = data[0] << 8;
     result |= data[1];
 
-//    Wire.beginTransmission(RDA5807M_I2C_ADDR_RANDOM);
-//    Wire.write(reg);
-//    Wire.endTransmission(false);
-//    Wire.requestFrom(RDA5807M_I2C_ADDR_RANDOM, (size_t)2, true);
-    //Don't let gcc play games on us, enforce order of execution.
-//    result = (word)Wire.read() << 8;
-//    result |= Wire.read();
-
     return result;
 };
 
-/*
-void RDA5807M::setRegisterBulk(byte count, const word regs[]) {
-    uint8_t data[32];
+bool RDA5807M::setVolume(byte vol) {
+    updateRegister(RDA5807M_REG_VOLUME, RDA5807M_VOLUME_MASK, vol & RDA5807M_VOLUME_MASK);
 
-    if ( count > 16) return;                // error
-    for(byte i = 0; i < count; i++) {
-        data[i * 2] = regs[i] > 8;
-        data[i * 2 + 1] = regs[i] &0xff;
-    };
-    i2c_send(RDA5807M_I2C_ADDR_SEQRDA, data, count * 2);
-//    Wire.beginTransmission(RDA5807M_I2C_ADDR_SEQRDA);
-//    for(byte i=0; i < count; i++) {
-//        Wire.write(highByte(regs[i]));
-//        Wire.write(lowByte(regs[i]));
-//    };
-
-//    Wire.endTransmission(true);
-};
-
-void RDA5807M::getRegisterBulk(byte count, word regs[]) {
-    uint8_t data[32];
-
-    if ( count > 16) return;                // error
-    i2c_slave_available(RDA5807M_I2C_ADDR_SEQRDA);
-    i2c_receive(RDA5807M_I2C_ADDR_SEQRDA, data, count * 2);
-    for(byte i = 0; i < count; i++) {
-        regs[i] =  data[i * 2] << 8;
-        regs[i] |= data[i * 2 + 1];
-    };
-
-
-//    Wire.requestFrom(RDA5807M_I2C_ADDR_SEQRDA, (size_t)(count * 2), true);
-//
-//    for(byte i=0; i < count; i++) {
-//        //Don't let gcc play games on us, enforce order of execution.
-//        regs[count] = (word)Wire.read() << 8;
-//        regs[count] |= Wire.read();
-//    };
-};
-
-void RDA5807M::setRegisterBulk(const TRDA5807MRegisterFileWrite *regs) {
-    const uint8_t * const ptr = (uint8_t *)regs;
-
-    Wire.beginTransmission(RDA5807M_I2C_ADDR_SEQRDA);
-
-    for(byte i=0; i < sizeof(TRDA5807MRegisterFileWrite); i++)
-        Wire.write(ptr[i]);
-
-    Wire.endTransmission(true);
-};
-
-void RDA5807M::getRegisterBulk(TRDA5807MRegisterFileRead *regs) {
-    uint8_t * const ptr = (uint8_t *)regs;
-
-    Wire.requestFrom(RDA5807M_I2C_ADDR_SEQRDA,
-                     sizeof(TRDA5807MRegisterFileRead), true);
-
-    for(byte i=0; i < sizeof(TRDA5807MRegisterFileRead); i++)
-        ptr[i] = Wire.read();
-
-};
-*/
+    return true;
+}
 
 
 bool RDA5807M::volumeUp(void) {
@@ -153,14 +88,14 @@ bool RDA5807M::volumeDown(bool alsoMute) {
             //of zero triggers mute & HiZ on its own.
             mute();
         return true;
-    } else 
+    } else
         return false;
 };
 
 void RDA5807M::seekUp(bool wrap) {
     updateRegister(RDA5807M_REG_CONFIG,
                    (RDA5807M_FLG_SEEKUP | RDA5807M_FLG_SEEK |
-                    RDA5807M_FLG_SKMODE), 
+                    RDA5807M_FLG_SKMODE),
                    (RDA5807M_FLG_SEEKUP | RDA5807M_FLG_SEEK |
                     (wrap ? 0x00 : RDA5807M_FLG_SKMODE)));
 };
@@ -168,7 +103,7 @@ void RDA5807M::seekUp(bool wrap) {
 void RDA5807M::seekDown(bool wrap) {
     updateRegister(RDA5807M_REG_CONFIG,
                    (RDA5807M_FLG_SEEKUP | RDA5807M_FLG_SEEK |
-                    RDA5807M_FLG_SKMODE), 
+                    RDA5807M_FLG_SKMODE),
                    (0x00 | RDA5807M_FLG_SEEK |
                     (wrap ? 0x00 : RDA5807M_FLG_SKMODE)));
 };
@@ -183,10 +118,6 @@ void RDA5807M::unMute(bool minVolume) {
     updateRegister(RDA5807M_REG_CONFIG, RDA5807M_FLG_DMUTE, RDA5807M_FLG_DMUTE);
 };
 
-//const word RDA5807M_BandLowerLimits[5] PROGMEM = { 8700, 7600, 7600, 6500, 5000 };
-//const word RDA5807M_BandHigherLimits[5] PROGMEM = { 10800, 9100, 10800, 7600, 6500 };
-//const byte RDA5807M_ChannelSpacings[4] PROGMEM = { 100, 200, 50, 25 };
-
 const word RDA5807M_BandLowerLimits[5]  = { 8700, 7600, 7600, 6500, 5000 };
 const word RDA5807M_BandHigherLimits[5] = { 10800, 9100, 10800, 7600, 6500 };
 const byte RDA5807M_ChannelSpacings[4]  = { 100, 200, 50, 25 };
@@ -197,30 +128,22 @@ word RDA5807M::getBandAndSpacing(void) {
     //Separate channel spacing
     const byte space = band & RDA5807M_SPACE_MASK;
 
-    if (band & RDA5807M_BAND_MASK == RDA5807M_BAND_EAST && 
-        (getRegister(RDA5807M_REG_BLEND) & RDA5807M_FLG_EASTBAND65M))
-        //Lower band limit is 50MHz
-        band = (band >> RDA5807M_BAND_SHIFT) + 1;
-    else
-        band >>= RDA5807M_BAND_SHIFT;
-
+    if ((band & RDA5807M_BAND_MASK) == RDA5807M_BAND_EAST) {
+        if (getRegister(RDA5807M_REG_BLEND) & RDA5807M_FLG_EASTBAND65M) {
+            //Lower band limit is 50MHz
+            band >>= RDA5807M_BAND_SHIFT;
+        } else {
+            band = (band >> RDA5807M_BAND_SHIFT) + 1;
+        }
+    } else {
+            band >>= RDA5807M_BAND_SHIFT;
+    }
     return word(space << 8 | band);
 };
 
 word RDA5807M::getFrequency(void) {
     const word spaceandband = getBandAndSpacing();
     const byte band = spaceandband & 0xff;
-//    if (band & RDA5807M_BAND_MASK == RDA5807M_BAND_EAST && 
-//        !(getRegister(RDA5807M_REG_BLEND) & RDA5807M_FLG_EASTBAND65M)) {
-//        band = (spaceandband & 0x00ff);
-//    } else {
-//        //Lower band limit is 50MHz
-//        band = (spaceandband & 0x00ff) + 1;
-//    }
-
-//    return pgm_read_word(&RDA5807M_BandLowerLimits[lowByte(spaceandband)]) +
-//        (getRegister(RDA5807M_REG_STATUS) & RDA5807M_READCHAN_MASK) *
-//        pgm_read_byte(&RDA5807M_ChannelSpacings[highByte(spaceandband)]) / 10;
 
     return RDA5807M_BandLowerLimits[band] +
         (getRegister(RDA5807M_REG_STATUS) & RDA5807M_READCHAN_MASK) *
@@ -230,15 +153,6 @@ word RDA5807M::getFrequency(void) {
 bool RDA5807M::setFrequency(word frequency) {
     const word spaceandband = getBandAndSpacing();
     const byte band = spaceandband & 0xff;
-//    const word origin = RDA5807M_BandLowerLimits[spaceandband & 0x00ff];
-
-//    if (band & RDA5807M_BAND_MASK == RDA5807M_BAND_EAST && 
-//        !(getRegister(RDA5807M_REG_BLEND) & RDA5807M_FLG_EASTBAND65M)) {
-//        band = (spaceandband & 0x00ff);
-//    } else {
-//        //Lower band limit is 50MHz
-//        band = (spaceandband & 0x00ff) + 1;
-//    }
     const word origin = RDA5807M_BandLowerLimits[band];
 
     //Check that specified frequency falls within our current band limits
@@ -269,7 +183,11 @@ byte RDA5807M::getRSSI(void) {
 
 bool RDA5807M::setBand(word band) {
     // set or reset RDA5807M_FLG_EASTBAND65M
-    updateRegister(RDA5807M_REG_BLEND, RDA5807M_FLG_EASTBAND65M, (band & 0x001) << 9);
+    if (band & 0x001) {
+        updateRegister(RDA5807M_REG_BLEND, RDA5807M_FLG_EASTBAND65M, 0);
+    } else {
+        updateRegister(RDA5807M_REG_BLEND, RDA5807M_FLG_EASTBAND65M, RDA5807M_FLG_EASTBAND65M);
+    }
     // set band;
     updateRegister(RDA5807M_REG_TUNING, RDA5807M_BAND_MASK, band & RDA5807M_BAND_MASK);
 
@@ -289,11 +207,12 @@ bool RDA5807M::dumpRegister(void)
     printf("REG_TUNING  :%04x\n", getRegister(RDA5807M_REG_TUNING));
     printf("REG_GPIO    :%04x\n", getRegister(RDA5807M_REG_GPIO));
     printf("REG_VOLUME  :%04x\n", getRegister(RDA5807M_REG_VOLUME));
-    printf("REG_I2S     :%04x\n", getRegister(RDA5807M_REG_I2S)); 
+    printf("REG_I2S     :%04x\n", getRegister(RDA5807M_REG_I2S));
     printf("REG_BLEND   :%04x\n", getRegister(RDA5807M_REG_BLEND));
     printf("REG_FREQ    :%04x\n", getRegister(RDA5807M_REG_FREQ));
     printf("REG_STATUS  :%04x\n", getRegister(RDA5807M_REG_STATUS));
     printf("REG_RSSI    :%04x\n", getRegister(RDA5807M_REG_RSSI));
+    printf("\n");
 
     return true;
 }
